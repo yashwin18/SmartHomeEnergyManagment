@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Smart Home System</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Segoe UI', sans-serif;
+}
+
+body{
+  height:100vh;
+  transition:0.5s ease;
+  background-size:cover;
+  background-position:center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* LOGIN BACKGROUND */
+.login-bg{
+  background:
+    linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)),
+    url('https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=2000&q=80');
+}
+
+/* REGISTER BACKGROUND */
+.register-bg{
+  background:
+    linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)),
+    url('https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&w=2000&q=80');
+}
+
+.card{
+  width:420px;
+  padding:45px;
+  border-radius:20px;
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(20px);
+  box-shadow:0 0 50px rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,0.1);
+  color:white;
+}
+
+h2{
+  text-align:center;
+  margin-bottom:30px;
+  font-weight:500;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  margin-bottom:15px;
+  border:none;
+  border-radius:10px;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  font-size:14px;
+  transition:0.3s;
+}
+
+input::placeholder{
+  color:#ddd;
+}
+
+input:focus{
+  background:rgba(255,255,255,0.25);
+  outline:none;
+}
+
+.checkbox{
+  display:flex;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.checkbox input{
+  width:18px;
+  height:18px;
+  margin-right:10px;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  border-radius:10px;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+  font-size:14px;
+  margin-bottom:12px;
+}
+
+.primary{
+  background:linear-gradient(135deg,#00c853,#00e676);
+  color:white;
+}
+
+.primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 5px 20px rgba(0,200,83,0.5);
+}
+
+.secondary{
+  background:linear-gradient(135deg,#2962ff,#448aff);
+  color:white;
+}
+
+.secondary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 5px 20px rgba(41,98,255,0.5);
+}
+
+.link{
+  text-align:center;
+  margin-top:10px;
+  cursor:pointer;
+  color:#00e5ff;
+  font-size:14px;
+}
+
+.hidden{
+  display:none;
+}
+</style>
+</head>
+
+<body class="login-bg">
+
+<div class="card">
+
+<!-- LOGIN -->
+<div id="loginPage">
+  <h2>Smart Home Login</h2>
+
+  <input id="loginUserId" placeholder="User ID">
+  <input id="loginPassword" type="password" placeholder="Password">
+
+  <div class="checkbox">
+    <input type="checkbox" id="rememberMe">
+    <label for="rememberMe">Remember Me</label>
+  </div>
+
+  <button class="primary" onclick="login()">Login</button>
+
+  <div id="g_id_onload"
+       data-client_id="770343642289-2623d77frvr4nqeh47tl3319p9h6j1lg.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+  </div>
+  <div class="g_id_signin"></div>
+
+  <div class="link" onclick="showRegister()">
+    Don't have an account? Register
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="registerPage" class="hidden">
+  <h2>Create Smart Home Account</h2>
+
+  <input id="regName" placeholder="Full Name">
+  <input id="regEmail" placeholder="Email Address">
+  <input id="regUserId" placeholder="Unique User ID">
+  <input id="regPassword" type="password" placeholder="Create Password">
+  <input id="regMobile" placeholder="+91XXXXXXXXXX">
+
+  <button class="secondary" onclick="sendOTP()">Send OTP</button>
+
+  <input id="regOtp" placeholder="Enter OTP">
+  <button class="primary" onclick="verifyAndRegister()">
+    Verify & Register
+  </button>
+
+  <div class="link" onclick="showLogin()">
+    Already have an account? Login
+  </div>
+</div>
+
+</div>
+
+<script>
+
+function showRegister(){
+  document.body.classList.remove("login-bg");
+  document.body.classList.add("register-bg");
+  loginPage.classList.add("hidden");
+  registerPage.classList.remove("hidden");
+}
+
+function showLogin(){
+  document.body.classList.remove("register-bg");
+  document.body.classList.add("login-bg");
+  registerPage.classList.add("hidden");
+  loginPage.classList.remove("hidden");
+}
+
+async function sendOTP(){
+  await fetch("/send-mobile-otp",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({mobile:regMobile.value})
+  });
+  alert("OTP Sent");
+}
+
+async function verifyAndRegister(){
+  const verify=await fetch("/verify-mobile-otp",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({mobile:regMobile.value,otp:regOtp.value})
+  });
+
+  if(!verify.ok){
+    alert("Invalid OTP");
+    return;
+  }
+
+  await fetch("/register",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name:regName.value,
+      email:regEmail.value,
+      userId:regUserId.value,
+      password:regPassword.value,
+      mobile:regMobile.value
+    })
+  });
+
+  alert("Registration Successful");
+  showLogin();
+}
+
+async function login(){
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      userId:loginUserId.value,
+      password:loginPassword.value
+    })
+  });
+
+  const data = await res.json();
+
+  if(!data.token){
+    alert("Invalid Credentials");
+    return;
+  }
+
+  window.location.href = "/home.html";
+}
+
+async function handleCredentialResponse(response){
+  const res = await fetch("/google-login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ token: response.credential })
+  });
+
+  const data = await res.json();
+
+  if(!data.token){
+    alert("Google Login Failed");
+    return;
+  }
+
+  // Save token if you are using JWT
+  localStorage.setItem("token", data.token);
+
+  // Redirect to dashboard
+  window.location.href = "/home.html";
+}
+
+</script>
+
+</body>
+</html>
+
+

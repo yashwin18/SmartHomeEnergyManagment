@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Smart Home Dashboard</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Segoe UI', sans-serif;
+}
+
+body{
+  height:100vh;
+  background:url('https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&w=2000&q=80')
+  no-repeat center center/cover;
+  color:white;
+}
+
+/* Overlay */
+body::before{
+  content:"";
+  position:absolute;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(5px);
+  z-index:0;
+}
+
+.container{
+  position:relative;
+  z-index:1;
+  padding:40px;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:40px;
+}
+
+.header h1{
+  font-weight:400;
+}
+
+.logout-btn{
+  padding:10px 20px;
+  background:#ff5252;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.logout-btn:hover{
+  background:#ff1744;
+}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:25px;
+}
+
+.card{
+  background:rgba(255,255,255,0.1);
+  backdrop-filter:blur(20px);
+  padding:30px;
+  border-radius:20px;
+  box-shadow:0 0 30px rgba(0,0,0,0.5);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:translateY(-5px);
+}
+
+.card h2{
+  margin-bottom:15px;
+  font-weight:400;
+}
+
+.toggle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.switch{
+  position:relative;
+  width:50px;
+  height:25px;
+}
+
+.switch input{
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.slider{
+  position:absolute;
+  cursor:pointer;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background-color:#ccc;
+  border-radius:25px;
+  transition:.4s;
+}
+
+.slider:before{
+  position:absolute;
+  content:"";
+  height:19px;
+  width:19px;
+  left:3px;
+  bottom:3px;
+  background:white;
+  border-radius:50%;
+  transition:.4s;
+}
+
+input:checked + .slider{
+  background:#00e676;
+}
+
+input:checked + .slider:before{
+  transform:translateX(24px);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+  <h1>Welcome to Your Smart Home</h1>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h2>Living Room Lights</h2>
+    <div class="toggle">
+      <span>Status</span>
+      <label class="switch">
+        <input type="checkbox">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Air Conditioner</h2>
+    <div class="toggle">
+      <span>Status</span>
+      <label class="switch">
+        <input type="checkbox">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Security System</h2>
+    <div class="toggle">
+      <span>Armed</span>
+      <label class="switch">
+        <input type="checkbox">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Energy Usage</h2>
+    <p>Today's Consumption: <strong>12.5 kWh</strong></p>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+function logout(){
+  window.location.href = "/";
+}
+</script>
+
+</body>
+</html>
