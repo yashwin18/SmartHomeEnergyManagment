@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Users</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f5f7fa;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:240px;
+background:linear-gradient(180deg,#00c9a7,#00a78e);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+cursor:pointer;
+border-radius:8px;
+margin-bottom:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+}
+
+/* SEARCH */
+
+.search{
+margin-bottom:20px;
+}
+
+.search input{
+padding:10px;
+width:300px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+/* TABLE */
+
+table{
+width:100%;
+background:white;
+border-collapse:collapse;
+border-radius:10px;
+overflow:hidden;
+}
+
+th,td{
+padding:14px;
+border-bottom:1px solid #eee;
+text-align:left;
+}
+
+/* ROLE BADGES */
+
+.badge{
+padding:6px 10px;
+border-radius:6px;
+color:white;
+font-size:12px;
+}
+
+.admin{background:#00a78e;}
+.homeowner{background:#3498db;}
+.technician{background:#f39c12;}
+
+/* BUTTON */
+
+.delete-btn{
+padding:6px 12px;
+border:none;
+background:#e74c3c;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.delete-btn:hover{
+background:#c0392b;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<h2>Admin</h2>
+
+<ul>
+<li onclick="go('admin-dashboard.html')">Dashboard</li>
+<li onclick="go('admin-users.html')">Users</li>
+<li onclick="go('admin-devices.html')">Devices</li>
+<li onclick="go('admin-analytics.html')">Energy Analytics</li>
+<li onclick="go('admin-logs.html')">System Logs</li>
+<li onclick="go('admin-settings.html')">Settings</li>
+<li onclick="logout()">Logout</li>
+</ul>
+
+</div>
+
+<div class="main">
+
+<h1>Users Management</h1>
+
+<div class="search">
+<input type="text" id="searchInput" placeholder="Search user email..." onkeyup="searchUsers()">
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Email</th>
+<th>Role</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="usersTable"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+function go(page){
+window.location.href=page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href="login.html"
+}
+
+const token = localStorage.getItem("token")
+
+let allUsers=[]
+
+async function loadUsers(){
+
+const res = await fetch("/admin/users",{
+headers:{
+Authorization:"Bearer "+token
+}
+})
+
+const users = await res.json()
+
+allUsers = users
+
+renderUsers(users)
+
+}
+
+function renderUsers(users){
+
+const table = document.getElementById("usersTable")
+
+table.innerHTML=""
+
+users.forEach(user=>{
+
+let badgeClass = user.role
+
+table.innerHTML += `
+<tr>
+<td>${user.email}</td>
+
+<td>
+<span class="badge ${badgeClass}">
+${user.role}
+</span>
+</td>
+
+<td>
+<button class="delete-btn" onclick="deleteUser(${user.id})">
+Delete
+</button>
+</td>
+
+</tr>
+`
+
+})
+
+}
+
+/* SEARCH */
+
+function searchUsers(){
+
+const text = document.getElementById("searchInput").value.toLowerCase()
+
+const filtered = allUsers.filter(u =>
+u.email.toLowerCase().includes(text)
+)
+
+renderUsers(filtered)
+
+}
+
+/* DELETE USER */
+
+async function deleteUser(id){
+
+if(!confirm("Delete this user?")) return
+
+await fetch("/admin/delete-user/"+id,{
+method:"DELETE",
+headers:{
+Authorization:"Bearer "+token
+}
+})
+
+loadUsers()
+
+}
+
+loadUsers()
+
+</script>
+
+</body>
+</html>

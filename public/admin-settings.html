@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>System Settings</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f5f7fa;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:240px;
+background:linear-gradient(180deg,#00c9a7,#00a78e);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+cursor:pointer;
+border-radius:8px;
+margin-bottom:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+}
+
+/* SETTINGS BOX */
+
+.settings-box{
+background:white;
+padding:30px;
+border-radius:16px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+width:500px;
+}
+
+.settings-box label{
+display:block;
+margin-top:15px;
+margin-bottom:6px;
+font-weight:600;
+}
+
+.settings-box input{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+.settings-box button{
+margin-top:20px;
+padding:12px 20px;
+background:#00a78e;
+border:none;
+color:white;
+border-radius:8px;
+cursor:pointer;
+}
+
+.settings-box button:hover{
+background:#00997f;
+}
+
+/* MESSAGE */
+
+.message{
+margin-top:15px;
+color:green;
+font-weight:600;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<h2>Admin</h2>
+
+<ul>
+<li onclick="go('admin-dashboard.html')">Dashboard</li>
+<li onclick="go('admin-users.html')">Users</li>
+<li onclick="go('admin-devices.html')">Devices</li>
+<li onclick="go('admin-analytics.html')">Energy Analytics</li>
+<li onclick="go('admin-logs.html')">System Logs</li>
+<li onclick="go('admin-settings.html')">Settings</li>
+<li onclick="logout()">Logout</li>
+</ul>
+
+</div>
+
+<div class="main">
+
+<h1>System Settings</h1>
+
+<div class="settings-box">
+
+<label>Electricity Rate (₹ per kWh)</label>
+<input id="rate">
+
+<label>Energy Alert Threshold (kWh)</label>
+<input id="threshold">
+
+<button onclick="saveSettings()">Save Settings</button>
+
+<div class="message" id="msg"></div>
+
+</div>
+
+</div>
+
+<script>
+
+function go(page){
+window.location.href = page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href = "login.html"
+}
+
+const token = localStorage.getItem("token")
+
+/* LOAD SETTINGS */
+
+async function loadSettings(){
+
+const res = await fetch("/admin/settings",{
+headers:{
+Authorization:"Bearer "+token
+}
+})
+
+const data = await res.json()
+
+if(data){
+document.getElementById("rate").value = data.electricity_rate || ""
+document.getElementById("threshold").value = data.alert_threshold || ""
+}
+
+}
+
+loadSettings()
+
+/* SAVE SETTINGS */
+
+async function saveSettings(){
+
+const rate = document.getElementById("rate").value
+const threshold = document.getElementById("threshold").value
+
+const res = await fetch("/admin/settings",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+electricity_rate:rate,
+alert_threshold:threshold
+})
+
+})
+
+const data = await res.json()
+
+document.getElementById("msg").innerText = data.message
+
+}
+
+</script>
+
+</body>
+</html>

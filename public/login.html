@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+height:100vh;
+display:flex;
+}
+
+.container{
+display:flex;
+width:100%;
+}
+
+/* LEFT PANEL */
+
+.left{
+flex:1;
+background:#f7f7f7;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+padding:60px;
+}
+
+.left h1{
+font-size:48px;
+margin-bottom:10px;
+color:#222;
+}
+
+.left p{
+color:#777;
+margin-bottom:25px;
+}
+
+/* GOOGLE BUTTON */
+
+.google-btn{
+display:flex;
+justify-content:center;
+margin-bottom:25px;
+}
+
+/* INPUTS */
+
+.input{
+width:360px;
+margin-bottom:20px;
+position:relative;
+}
+
+.input input{
+width:100%;
+padding:16px;
+border:none;
+border-radius:25px;
+background:#e9ecef;
+font-size:14px;
+}
+
+.role{
+width:360px;
+margin-bottom:20px;
+}
+
+.role select{
+width:100%;
+padding:14px;
+border-radius:25px;
+border:none;
+background:#e9ecef;
+}
+
+/* SIGN IN BUTTON */
+
+.login-btn{
+width:360px;
+padding:14px;
+border:none;
+border-radius:25px;
+background:linear-gradient(135deg,#00c9a7,#00a78e);
+color:white;
+font-size:16px;
+cursor:pointer;
+margin-top:10px;
+}
+
+/* LINKS */
+
+.links{
+margin-top:15px;
+font-size:14px;
+color:#555;
+}
+
+.links span{
+cursor:pointer;
+color:#00a78e;
+margin-left:5px;
+}
+
+/* RIGHT PANEL */
+
+.right{
+flex:1;
+background:linear-gradient(135deg,#00c9a7,#00a78e);
+color:white;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:60px;
+}
+
+.right h2{
+font-size:42px;
+margin-bottom:20px;
+}
+
+.right p{
+font-size:18px;
+margin-bottom:30px;
+max-width:350px;
+}
+
+.signup-btn{
+padding:14px 40px;
+border:none;
+border-radius:25px;
+background:white;
+color:#00a78e;
+font-size:16px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LEFT LOGIN -->
+
+<div class="left">
+
+<h1>Login to Your Account</h1>
+
+<p>Login using Google</p>
+
+<div class="google-btn">
+
+<div id="g_id_onload"
+data-client_id="YOUR_GOOGLE_CLIENT_ID"
+data-callback="handleGoogle">
+</div>
+
+<div class="g_id_signin"></div>
+
+</div>
+
+<div class="input">
+<input id="email" placeholder="Email">
+</div>
+
+<div class="input">
+<input id="password" type="password" placeholder="Password">
+</div>
+
+<div class="role">
+<select id="role">
+<option value="">Select Role</option>
+<option value="admin">Admin</option>
+<option value="homeowner">Homeowner</option>
+<option value="technician">Technician</option>
+</select>
+</div>
+
+<button class="login-btn" onclick="login()">Sign In</button>
+
+<div class="links">
+Forgot Password?
+<span onclick="forgot()">Reset</span>
+</div>
+
+</div>
+
+<!-- RIGHT SIGNUP PANEL -->
+
+<div class="right">
+
+<h2>New Here?</h2>
+
+<p>Sign up and discover a great amount of new opportunities!</p>
+
+<button class="signup-btn" onclick="signup()">Sign Up</button>
+
+</div>
+
+</div>
+
+<script>
+
+/* NORMAL LOGIN */
+
+async function login(){
+
+const email=document.getElementById("email").value
+const password=document.getElementById("password").value
+const role=document.getElementById("role").value
+
+if(!email || !password || !role){
+alert("Fill all fields")
+return
+}
+
+const res=await fetch("/login",{
+
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password,role})
+
+})
+
+const data=await res.json()
+
+if(!data.token){
+alert("Login failed")
+return
+}
+
+localStorage.setItem("token",data.token)
+localStorage.setItem("role",data.role)
+
+/* ROLE REDIRECT */
+
+if(data.role==="admin"){
+window.location.href="admin-dashboard.html"
+}
+
+if(data.role==="homeowner"){
+window.location.href="owner-dashboard.html"
+}
+
+if(data.role==="technician"){
+window.location.href="technician-dashboard.html"
+}
+
+}
+
+/* GOOGLE LOGIN */
+
+async function handleGoogle(response){
+
+const res=await fetch("/google-login",{
+
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({token:response.credential})
+
+})
+
+const data=await res.json()
+
+if(!data.token){
+alert("Google login failed")
+return
+}
+
+localStorage.setItem("token",data.token)
+localStorage.setItem("role",data.role)
+
+window.location.href="owner-dashboard.html"
+
+}
+
+/* FORGOT PASSWORD */
+
+async function forgot(){
+
+const email=prompt("Enter registered email")
+
+await fetch("/send-otp",{
+
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,purpose:"reset"})
+
+})
+
+const otp=prompt("Enter OTP")
+
+await fetch("/verify-otp",{
+
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,otp,purpose:"reset"})
+
+})
+
+const newpass=prompt("Enter new password")
+
+await fetch("/update-password",{
+
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password:newpass})
+
+})
+
+alert("Password updated")
+
+}
+
+/* SIGNUP PAGE */
+
+function signup(){
+window.location.href="signup.html"
+}
+
+</script>
+
+</body>
+</html>

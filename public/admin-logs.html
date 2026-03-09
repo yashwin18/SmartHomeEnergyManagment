@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>System Logs</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f5f7fa;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:240px;
+background:linear-gradient(180deg,#00c9a7,#00a78e);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+cursor:pointer;
+border-radius:8px;
+margin-bottom:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+}
+
+/* LOG CARD */
+
+.log-card{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-bottom:15px;
+box-shadow:0 8px 18px rgba(0,0,0,0.08);
+}
+
+.log-message{
+font-size:16px;
+color:#333;
+margin-bottom:5px;
+}
+
+.log-time{
+font-size:13px;
+color:#888;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<h2>Admin</h2>
+
+<ul>
+<li onclick="go('admin-dashboard.html')">Dashboard</li>
+<li onclick="go('admin-users.html')">Users</li>
+<li onclick="go('admin-devices.html')">Devices</li>
+<li onclick="go('admin-analytics.html')">Energy Analytics</li>
+<li onclick="go('admin-logs.html')">System Logs</li>
+<li onclick="go('admin-settings.html')">Settings</li>
+<li onclick="logout()">Logout</li>
+</ul>
+
+</div>
+
+<div class="main">
+
+<h1>System Logs</h1>
+
+<div id="logsContainer"></div>
+
+</div>
+
+<script>
+
+function go(page){
+window.location.href = page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href = "login.html"
+}
+
+const token = localStorage.getItem("token")
+
+async function loadLogs(){
+
+const res = await fetch("/admin/logs",{
+headers:{
+Authorization:"Bearer "+token
+}
+})
+
+const logs = await res.json()
+
+const container = document.getElementById("logsContainer")
+
+container.innerHTML=""
+
+/* show newest logs first */
+
+logs.forEach(log=>{
+
+container.innerHTML += `
+<div class="log-card">
+<div class="log-message">${log.message}</div>
+<div class="log-time">${log.created_at}</div>
+</div>
+`
+
+})
+
+}
+
+loadLogs()
+
+</script>
+
+</body>
+</html>

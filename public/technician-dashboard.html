@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Technician Dashboard</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f4f7fb;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:250px;
+background:linear-gradient(180deg,#0077b6,#005f8f);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar h2{
+margin-bottom:20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+margin-bottom:8px;
+cursor:pointer;
+border-radius:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+overflow:auto;
+}
+
+h1{
+margin-bottom:20px;
+}
+
+/* TABLE */
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+border-radius:10px;
+overflow:hidden;
+box-shadow:0 8px 20px rgba(0,0,0,0.08);
+margin-bottom:30px;
+}
+
+th,td{
+padding:12px;
+text-align:left;
+}
+
+th{
+background:#0077b6;
+color:white;
+}
+
+tr:nth-child(even){
+background:#f2f2f2;
+}
+
+/* BUTTONS */
+
+button{
+padding:6px 12px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+color:white;
+}
+
+.log{
+background:#2ecc71;
+}
+
+.update{
+background:#f39c12;
+}
+
+.offline{
+background:#e74c3c;
+}
+
+/* ENERGY FORM */
+
+.energy-form{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.08);
+margin-bottom:25px;
+}
+
+input{
+padding:8px;
+margin-right:10px;
+}
+
+/* ALERT BOX */
+
+.alert-box{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.08);
+}
+
+.alert{
+padding:10px;
+background:#ffe9e9;
+border-left:5px solid red;
+margin-bottom:8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<h2>Technician</h2>
+
+<ul>
+
+<li onclick="go('technician-dashboard.html')">Dashboard</li>
+
+<li onclick="scrollDevices()">Devices</li>
+
+<li onclick="scrollEnergy()">Log Energy</li>
+
+<li onclick="scrollAlerts()">Maintenance Alerts</li>
+
+<li onclick="logout()">Logout</li>
+
+</ul>
+
+</div>
+
+
+<!-- MAIN -->
+
+<div class="main">
+
+<h1>Technician Control Panel</h1>
+
+
+<!-- DEVICE TABLE -->
+
+<h2>Device Monitoring</h2>
+
+<table>
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>Device</th>
+<th>Owner</th>
+<th>Power</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+
+</thead>
+
+<tbody id="deviceTable"></tbody>
+
+</table>
+
+
+<!-- ENERGY LOGGING -->
+
+<div class="energy-form" id="energySection">
+
+<h2>Log Energy Usage</h2>
+
+<select id="deviceSelect"></select>
+
+<input id="energyInput" placeholder="Energy Used (kWh)">
+
+<button class="log" onclick="logEnergy()">Submit</button>
+
+</div>
+
+
+<!-- ALERTS -->
+
+<div class="alert-box" id="alertSection">
+
+<h2>Maintenance Alerts</h2>
+
+<div id="alerts"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* NAVIGATION */
+
+function go(page){
+window.location.href=page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href="login.html"
+}
+
+function scrollDevices(){
+document.getElementById("deviceTable").scrollIntoView({behavior:"smooth"})
+}
+
+function scrollEnergy(){
+document.getElementById("energySection").scrollIntoView({behavior:"smooth"})
+}
+
+function scrollAlerts(){
+document.getElementById("alertSection").scrollIntoView({behavior:"smooth"})
+}
+
+
+const token=localStorage.getItem("token")
+
+
+/* LOAD DEVICES */
+
+async function loadDevices(){
+
+const res=await fetch("/technician/devices",{
+headers:{Authorization:"Bearer "+token}
+})
+
+const devices=await res.json()
+
+const table=document.getElementById("deviceTable")
+const select=document.getElementById("deviceSelect")
+
+table.innerHTML=""
+select.innerHTML=""
+
+devices.forEach(d=>{
+
+table.innerHTML+=`
+
+<tr>
+
+<td>${d.id}</td>
+
+<td>${d.name}</td>
+
+<td>${d.owner}</td>
+
+<td>${d.power_rating} kW</td>
+
+<td>${d.status}</td>
+
+<td>
+
+<button class="update" onclick="updateDevice(${d.id},'Active')">Active</button>
+
+<button class="offline" onclick="updateDevice(${d.id},'Offline')">Offline</button>
+
+</td>
+
+</tr>
+
+`
+
+select.innerHTML+=`<option value="${d.id}">${d.name}</option>`
+
+})
+
+}
+
+
+/* UPDATE DEVICE */
+
+async function updateDevice(id,status){
+
+await fetch("/technician/update-device",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+device_id:id,
+status:status
+})
+
+})
+
+loadDevices()
+
+}
+
+
+/* LOG ENERGY */
+
+async function logEnergy(){
+
+const device=document.getElementById("deviceSelect").value
+const energy=document.getElementById("energyInput").value
+
+await fetch("/technician/log-energy",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+device_id:device,
+energy:energy
+})
+
+})
+
+alert("Energy usage recorded")
+
+}
+
+
+/* ALERT SIMULATION */
+
+function loadAlerts(){
+
+let alerts=""
+
+alerts+="<div class='alert'>⚠ Device Heater consuming high power</div>"
+
+alerts+="<div class='alert'>⚠ Device AC requires maintenance</div>"
+
+document.getElementById("alerts").innerHTML=alerts
+
+}
+
+
+loadDevices()
+loadAlerts()
+
+</script>
+
+</body>
+</html>

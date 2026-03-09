@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Devices</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f5f7fa;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:240px;
+background:linear-gradient(180deg,#00c9a7,#00a78e);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+cursor:pointer;
+border-radius:8px;
+margin-bottom:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+}
+
+/* FORM */
+
+.form-box{
+background:white;
+padding:20px;
+border-radius:10px;
+margin-bottom:25px;
+}
+
+.form-box input{
+padding:10px;
+margin-right:10px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+.form-box button{
+padding:10px 16px;
+background:#00a78e;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+/* TABLE */
+
+table{
+width:100%;
+background:white;
+border-collapse:collapse;
+border-radius:10px;
+overflow:hidden;
+}
+
+th,td{
+padding:14px;
+border-bottom:1px solid #eee;
+text-align:left;
+}
+
+/* STATUS */
+
+.active{
+color:green;
+font-weight:bold;
+}
+
+.offline{
+color:red;
+font-weight:bold;
+}
+
+/* DELETE BUTTON */
+
+.delete-btn{
+padding:6px 12px;
+background:#e74c3c;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<h2>Admin</h2>
+
+<ul>
+<li onclick="go('admin-dashboard.html')">Dashboard</li>
+<li onclick="go('admin-users.html')">Users</li>
+<li onclick="go('admin-devices.html')">Devices</li>
+<li onclick="go('admin-analytics.html')">Energy Analytics</li>
+<li onclick="go('admin-logs.html')">System Logs</li>
+<li onclick="go('admin-settings.html')">Settings</li>
+<li onclick="logout()">Logout</li>
+</ul>
+
+</div>
+
+<div class="main">
+
+<h1>Device Management</h1>
+
+<div class="form-box">
+
+<input id="name" placeholder="Device Name">
+
+<input id="owner" placeholder="Owner Email">
+
+<input id="power" placeholder="Power Rating">
+
+<input id="status" placeholder="Status">
+
+<button onclick="addDevice()">Add Device</button>
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Owner</th>
+<th>Power</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="deviceTable"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+function go(page){
+window.location.href=page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href="login.html"
+}
+
+const token = localStorage.getItem("token")
+
+let devices=[]
+
+async function loadDevices(){
+
+const res=await fetch("/admin/devices",{
+headers:{Authorization:"Bearer "+token}
+})
+
+devices=await res.json()
+
+renderDevices(devices)
+
+}
+
+function renderDevices(data){
+
+const table=document.getElementById("deviceTable")
+
+table.innerHTML=""
+
+data.forEach(d=>{
+
+table.innerHTML+=`
+<tr>
+<td>${d.name}</td>
+<td>${d.owner}</td>
+<td>${d.power_rating}</td>
+<td class="${d.status==='Active'?'active':'offline'}">${d.status}</td>
+<td>
+<button class="delete-btn" onclick="deleteDevice(${d.id})">Delete</button>
+</td>
+</tr>
+`
+
+})
+
+}
+
+/* ADD DEVICE */
+
+async function addDevice(){
+
+const name=document.getElementById("name").value
+const owner=document.getElementById("owner").value
+const power=document.getElementById("power").value
+const status=document.getElementById("status").value
+
+await fetch("/admin/devices",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+name:name,
+owner:owner,
+power_rating:power,
+status:status
+})
+
+})
+
+loadDevices()
+
+}
+
+/* DELETE DEVICE */
+
+async function deleteDevice(id){
+
+if(!confirm("Delete device?")) return
+
+await fetch("/admin/device/"+id,{
+method:"DELETE",
+headers:{Authorization:"Bearer "+token}
+})
+
+loadDevices()
+
+}
+
+loadDevices()
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Signup</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+height:100vh;
+display:flex;
+}
+
+.container{
+display:flex;
+width:100%;
+}
+
+/* LEFT */
+
+.left{
+flex:1;
+background:linear-gradient(135deg,#00c9a7,#00a78e);
+color:white;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:60px;
+}
+
+.left h2{
+font-size:42px;
+margin-bottom:20px;
+}
+
+.login-btn{
+padding:14px 40px;
+border:none;
+border-radius:25px;
+background:white;
+color:#00a78e;
+font-size:16px;
+cursor:pointer;
+}
+
+/* RIGHT */
+
+.right{
+flex:1;
+background:#f7f7f7;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+padding:60px;
+}
+
+.input{
+width:360px;
+margin-bottom:15px;
+}
+
+.input input{
+width:100%;
+padding:16px;
+border:none;
+border-radius:25px;
+background:#e9ecef;
+}
+
+.role{
+width:360px;
+margin-bottom:15px;
+}
+
+.role select{
+width:100%;
+padding:14px;
+border:none;
+border-radius:25px;
+background:#e9ecef;
+}
+
+.btn{
+width:360px;
+padding:14px;
+border:none;
+border-radius:25px;
+background:#00a78e;
+color:white;
+cursor:pointer;
+margin-top:10px;
+}
+
+.otp-btn{
+width:360px;
+padding:12px;
+border:none;
+border-radius:25px;
+background:#444;
+color:white;
+cursor:pointer;
+margin-bottom:15px;
+}
+
+.message{
+margin-top:10px;
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="left">
+<h2>Already Registered?</h2>
+<p>Login to access dashboard</p>
+<button class="login-btn" onclick="goLogin()">Login</button>
+</div>
+
+<div class="right">
+
+<h1>Create Account</h1>
+
+<div class="input">
+<input id="email" placeholder="Email">
+</div>
+
+<div class="input">
+<input id="password" type="password" placeholder="Password">
+</div>
+
+<div class="input">
+<input id="confirm" type="password" placeholder="Confirm Password">
+</div>
+
+<div class="role">
+<select id="role">
+<option value="">Select Role</option>
+<option value="admin">Admin</option>
+<option value="homeowner">Homeowner</option>
+<option value="technician">Technician</option>
+</select>
+</div>
+
+<button class="otp-btn" onclick="sendOTP()">Send OTP</button>
+
+<div class="input">
+<input id="otp" placeholder="Enter OTP">
+</div>
+
+<button class="btn" onclick="register()">Create Account</button>
+
+<div class="message" id="msg"></div>
+
+</div>
+
+</div>
+
+<script>
+
+function showMsg(text,color="black"){
+const msg=document.getElementById("msg")
+msg.innerText=text
+msg.style.color=color
+}
+
+function goLogin(){
+window.location.href="login.html"
+}
+
+/* SEND OTP */
+
+async function sendOTP(){
+
+const email=document.getElementById("email").value
+
+if(!email){
+showMsg("Enter email first","red")
+return
+}
+
+showMsg("Sending OTP...","blue")
+
+try{
+
+const res=await fetch("/send-otp",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,purpose:"signup"})
+})
+
+const data=await res.json()
+
+if(!res.ok){
+showMsg(data.message || "OTP failed","red")
+return
+}
+
+showMsg("OTP sent to your email","green")
+
+}catch(err){
+
+showMsg("Server connection failed","red")
+
+}
+
+}
+
+/* REGISTER */
+
+async function register(){
+
+const email=document.getElementById("email").value
+const password=document.getElementById("password").value
+const confirm=document.getElementById("confirm").value
+const role=document.getElementById("role").value
+const otp=document.getElementById("otp").value
+
+if(!email || !password || !confirm || !role || !otp){
+showMsg("Fill all fields","red")
+return
+}
+
+if(password!==confirm){
+showMsg("Passwords do not match","red")
+return
+}
+
+showMsg("Verifying OTP...","blue")
+
+try{
+
+const verify=await fetch("/verify-otp",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,otp,purpose:"signup"})
+})
+
+const verifyData=await verify.json()
+
+if(!verify.ok){
+showMsg(verifyData.message,"red")
+return
+}
+
+showMsg("Creating account...","blue")
+
+const res=await fetch("/register",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password,role})
+})
+
+const data=await res.json()
+
+if(!res.ok){
+showMsg(data.message,"red")
+return
+}
+
+showMsg("Account created successfully","green")
+
+setTimeout(()=>{
+window.location.href="login.html"
+},1500)
+
+}catch(err){
+
+showMsg("Server error","red")
+
+}
+
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Smart Home Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f4f7fb;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:250px;
+background:linear-gradient(180deg,#00c9a7,#009e85);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar h2{
+margin-bottom:20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+margin-bottom:8px;
+cursor:pointer;
+border-radius:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+overflow:auto;
+}
+
+/* HEADER */
+
+.header{
+display:flex;
+justify-content:space-between;
+margin-bottom:25px;
+}
+
+.header h1{
+color:#333;
+}
+
+/* CARDS */
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
+margin-bottom:25px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:15px;
+box-shadow:0 8px 20px rgba(0,0,0,0.07);
+}
+
+.card h3{
+color:#777;
+margin-bottom:8px;
+}
+
+.card p{
+font-size:24px;
+color:#00a78e;
+font-weight:bold;
+}
+
+/* LIVE ENERGY */
+
+.meter{
+background:white;
+padding:25px;
+border-radius:15px;
+box-shadow:0 8px 20px rgba(0,0,0,0.07);
+margin-bottom:25px;
+text-align:center;
+}
+
+.meter span{
+font-size:45px;
+color:#00a78e;
+font-weight:bold;
+}
+
+/* DEVICES */
+
+.devices{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
+margin-bottom:30px;
+}
+
+.device{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.06);
+}
+
+.device h4{
+margin-bottom:6px;
+}
+
+.device button{
+margin-top:6px;
+padding:6px 12px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+color:white;
+}
+
+.on{
+background:#2ecc71;
+}
+
+.off{
+background:#f39c12;
+}
+
+.delete{
+background:#e74c3c;
+}
+
+/* ADD DEVICE */
+
+.add-device{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.07);
+margin-bottom:25px;
+}
+
+input{
+padding:8px;
+margin-right:10px;
+}
+
+/* GRAPH */
+
+.graph{
+background:white;
+padding:25px;
+border-radius:15px;
+box-shadow:0 8px 20px rgba(0,0,0,0.07);
+margin-bottom:25px;
+}
+
+/* RECOMMENDATIONS */
+
+.recommend{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.07);
+}
+
+.tip{
+margin-bottom:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<h2>Homeowner</h2>
+
+<ul>
+
+<li onclick="go('homeowner-dashboard.html')">Dashboard</li>
+
+<li onclick="scrollToDevices()">My Devices</li>
+
+<li onclick="scrollToGraph()">Energy Analytics</li>
+
+<li onclick="scrollToAdd()">Add Device</li>
+
+<li onclick="scrollToTips()">Recommendations</li>
+
+<li onclick="logout()">Logout</li>
+
+</ul>
+
+</div>
+
+
+<!-- MAIN -->
+
+<div class="main">
+
+<div class="header">
+<h1>Smart Home Energy System</h1>
+</div>
+
+
+<!-- ENERGY CARDS -->
+
+<div class="cards">
+
+<div class="card">
+<h3>Total Energy</h3>
+<p id="totalEnergy">0</p>
+</div>
+
+<div class="card">
+<h3>Today's Energy</h3>
+<p id="todayEnergy">0</p>
+</div>
+
+<div class="card">
+<h3>Energy Cost Today</h3>
+<p id="energyCost">₹0</p>
+</div>
+
+</div>
+
+
+<!-- LIVE ENERGY -->
+
+<div class="meter">
+
+<h3>Live Energy Meter</h3>
+
+<span id="liveEnergy">0</span> kW
+
+</div>
+
+
+<!-- ADD DEVICE -->
+
+<div class="add-device" id="addSection">
+
+<h3>Add Device</h3>
+
+<input id="deviceName" placeholder="Device Name">
+
+<input id="devicePower" placeholder="Power kW">
+
+<button onclick="addDevice()">Add Device</button>
+
+</div>
+
+
+<!-- DEVICES -->
+
+<h2>My Devices</h2>
+
+<div class="devices" id="deviceGrid"></div>
+
+
+<!-- GRAPH -->
+
+<div class="graph" id="graphSection">
+
+<h3>Monthly Energy Usage</h3>
+
+<canvas id="energyChart"></canvas>
+
+</div>
+
+
+<!-- RECOMMENDATIONS -->
+
+<div class="recommend" id="tipsSection">
+
+<h3>Energy Saving Tips</h3>
+
+<div id="tips"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* NAVIGATION */
+
+function go(page){
+window.location.href=page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href="login.html"
+}
+
+function scrollToDevices(){
+document.getElementById("deviceGrid").scrollIntoView({behavior:"smooth"})
+}
+
+function scrollToGraph(){
+document.getElementById("graphSection").scrollIntoView({behavior:"smooth"})
+}
+
+function scrollToAdd(){
+document.getElementById("addSection").scrollIntoView({behavior:"smooth"})
+}
+
+function scrollToTips(){
+document.getElementById("tipsSection").scrollIntoView({behavior:"smooth"})
+}
+
+
+const token=localStorage.getItem("token")
+
+
+/* LOAD ENERGY */
+
+async function loadEnergy(){
+
+const res=await fetch("/homeowner/energy",{
+headers:{Authorization:"Bearer "+token}
+})
+
+const data=await res.json()
+
+document.getElementById("totalEnergy").innerText=data.total+" kWh"
+document.getElementById("todayEnergy").innerText=data.today+" kWh"
+
+const settings=await fetch("/admin/settings",{headers:{Authorization:"Bearer "+token}})
+const s=await settings.json()
+
+let cost=data.today*(s.electricity_rate || 7)
+
+document.getElementById("energyCost").innerText="₹"+cost.toFixed(2)
+
+let tips=""
+
+if(data.today>20)
+tips+="<div class='tip'>⚡ High usage today. Reduce AC usage.</div>"
+
+if(data.total>200)
+tips+="<div class='tip'>⚡ Monthly usage high. Turn off unused devices.</div>"
+
+document.getElementById("tips").innerHTML=tips
+
+}
+
+
+/* DEVICES */
+
+async function loadDevices(){
+
+const res=await fetch("/homeowner/devices",{
+headers:{Authorization:"Bearer "+token}
+})
+
+const devices=await res.json()
+
+const grid=document.getElementById("deviceGrid")
+
+grid.innerHTML=""
+
+devices.forEach(d=>{
+
+grid.innerHTML+=`
+
+<div class="device">
+
+<h4>${d.name}</h4>
+
+<p>Power: ${d.power_rating} kW</p>
+
+<p>Status: ${d.status}</p>
+
+<button class="on" onclick="toggleDevice(${d.id},'Active')">ON</button>
+
+<button class="off" onclick="toggleDevice(${d.id},'Offline')">OFF</button>
+
+<button class="delete" onclick="deleteDevice(${d.id})">Delete</button>
+
+</div>
+
+`
+
+})
+
+}
+
+
+/* TOGGLE DEVICE */
+
+async function toggleDevice(id,status){
+
+await fetch("/homeowner/toggle-device",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+device_id:id,
+status:status
+})
+
+})
+
+loadDevices()
+
+}
+
+
+/* ADD DEVICE */
+
+async function addDevice(){
+
+const name=document.getElementById("deviceName").value
+const power=document.getElementById("devicePower").value
+
+await fetch("/homeowner/add-device",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+name:name,
+power_rating:power
+})
+
+})
+
+loadDevices()
+
+}
+
+
+/* DELETE DEVICE */
+
+async function deleteDevice(id){
+
+await fetch("/homeowner/device/"+id,{
+method:"DELETE",
+headers:{Authorization:"Bearer "+token}
+})
+
+loadDevices()
+
+}
+
+
+/* GRAPH */
+
+async function loadGraph(){
+
+const res=await fetch("/homeowner/monthly-energy",{
+headers:{Authorization:"Bearer "+token}
+})
+
+const data=await res.json()
+
+const labels=data.map(d=>d.day)
+const values=data.map(d=>d.energy)
+
+new Chart(document.getElementById("energyChart"),{
+
+type:"line",
+
+data:{
+labels:labels,
+datasets:[{
+label:"Energy Usage (kWh)",
+data:values,
+borderColor:"#00a78e",
+backgroundColor:"rgba(0,167,142,0.2)",
+fill:true
+}]
+}
+
+})
+
+}
+
+
+/* WEBSOCKET LIVE ENERGY */
+
+const socket = io()
+
+socket.on("energyUpdate",(data)=>{
+
+document.getElementById("liveEnergy").innerText=data.energy
+
+})
+
+socket.on("energyAlert",(alert)=>{
+
+alert(alert.message)
+
+})
+
+
+loadEnergy()
+loadDevices()
+loadGraph()
+
+</script>
+
+</body>
+</html>

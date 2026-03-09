@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Energy Analytics</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+display:flex;
+background:#f5f7fa;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:240px;
+background:linear-gradient(180deg,#00c9a7,#00a78e);
+color:white;
+padding:30px 20px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+padding:12px;
+cursor:pointer;
+border-radius:8px;
+margin-bottom:8px;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+}
+
+/* CARDS */
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+margin-bottom:30px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:16px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
+.card h3{
+margin-bottom:10px;
+color:#666;
+}
+
+.card p{
+font-size:26px;
+color:#00a78e;
+}
+
+/* GRAPH */
+
+.chart-box{
+background:white;
+padding:30px;
+border-radius:16px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+width:700px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<h2>Admin</h2>
+
+<ul>
+<li onclick="go('admin-dashboard.html')">Dashboard</li>
+<li onclick="go('admin-users.html')">Users</li>
+<li onclick="go('admin-devices.html')">Devices</li>
+<li onclick="go('admin-analytics.html')">Energy Analytics</li>
+<li onclick="go('admin-logs.html')">System Logs</li>
+<li onclick="go('admin-settings.html')">Settings</li>
+<li onclick="logout()">Logout</li>
+</ul>
+
+</div>
+
+<div class="main">
+
+<h1>Energy Analytics</h1>
+
+<div class="cards">
+
+<div class="card">
+<h3>Total Energy Consumption</h3>
+<p id="totalEnergy">0</p>
+</div>
+
+<div class="card">
+<h3>Today's Energy</h3>
+<p id="todayEnergy">0</p>
+</div>
+
+</div>
+
+<div class="chart-box">
+
+<h3>Energy Usage Graph</h3>
+
+<canvas id="energyChart"></canvas>
+
+</div>
+
+</div>
+
+<script>
+
+function go(page){
+window.location.href=page
+}
+
+function logout(){
+localStorage.removeItem("token")
+window.location.href="login.html"
+}
+
+const token = localStorage.getItem("token")
+
+async function loadEnergy(){
+
+const res = await fetch("/admin/energy",{
+headers:{Authorization:"Bearer "+token}
+})
+
+const data = await res.json()
+
+document.getElementById("totalEnergy").innerText = data.total + " kWh"
+document.getElementById("todayEnergy").innerText = data.today + " kWh"
+
+createGraph(data)
+
+}
+
+function createGraph(data){
+
+new Chart(document.getElementById("energyChart"),{
+
+type:"line",
+
+data:{
+labels:["Total Energy","Today Energy"],
+
+datasets:[{
+label:"Energy Consumption",
+data:[data.total,data.today],
+borderColor:"#00a78e",
+backgroundColor:"rgba(0,167,142,0.2)",
+fill:true
+}]
+},
+
+options:{
+responsive:true,
+plugins:{
+legend:{display:true}
+}
+}
+
+})
+
+}
+
+loadEnergy()
+
+</script>
+
+</body>
+</html>
