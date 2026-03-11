@@ -124,23 +124,59 @@ db.prepare(
 ).run(email, otp, purpose, Date.now() + 300000)
 
 await transporter.sendMail({
-from: process.env.EMAIL_USER,
+from: `"Smart Home Energy System" <${process.env.EMAIL_USER}>`,
 to: email,
-subject: "Smart Home OTP Verification",
-text: `Your OTP is ${otp}`
+subject: "Your Smart Home Verification Code",
+html: `
+<div style="font-family:Arial,sans-serif;background:#0f172a;padding:40px;color:white">
+
+<div style="max-width:500px;margin:auto;background:#020617;border-radius:10px;padding:30px;text-align:center">
+
+<h2 style="color:#00f5ff;margin-bottom:10px">
+Smart Home Energy Management
+</h2>
+
+<p style="color:#cbd5e1">
+Secure Verification Required
+</p>
+
+<div style="margin:30px 0">
+
+<p style="color:#94a3b8">
+Use the verification code below to continue:
+</p>
+
+<div style="
+font-size:34px;
+letter-spacing:6px;
+background:#0f172a;
+padding:15px;
+border-radius:8px;
+color:#00f5ff;
+font-weight:bold;
+display:inline-block;
+margin-top:10px
+">
+${otp}
+</div>
+
+</div>
+
+<p style="color:#94a3b8;font-size:14px">
+This OTP is valid for <b>5 minutes</b>.
+</p>
+
+<hr style="border:1px solid #1e293b;margin:25px 0">
+
+<p style="font-size:12px;color:#64748b">
+Smart Home Energy Monitoring System<br>
+Secure Device & Energy Management Platform
+</p>
+
+</div>
+</div>
+`
 })
-
-res.json({ message: "OTP sent successfully" })
-
-}catch(err){
-
-console.error(err)
-res.status(500).json({ message: "Failed to send OTP" })
-
-}
-
-})
-
 /* ================= VERIFY OTP ================= */
 
 app.post("/verify-otp",(req,res)=>{
