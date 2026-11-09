@@ -676,13 +676,13 @@ console.log("Client disconnected")
 })
 setInterval(()=>{
 
-const devices = db.prepare("SELECT * FROM devices").all()
+const devices = db.prepare("SELECT * FROM devices WHERE status='Active'").all()
 
 const settings = db.prepare("SELECT * FROM settings LIMIT 1").get()
 
 devices.forEach(device=>{
 
-const energy = (Math.random()*2).toFixed(2)
+const energy = (Math.max(0,Number(device.power_rating) || 0) * (5/3600) * (0.5 + Math.random())).toFixed(4)
 
 /* store energy log */
 
