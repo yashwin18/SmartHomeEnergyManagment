@@ -8,6 +8,9 @@ const cors = require("cors")
 const Database = require("better-sqlite3")
 const http = require("http")
 const { Server } = require("socket.io")
+const helmet = require("helmet")
+const rateLimit = require("express-rate-limit")
+const crypto = require("crypto")
 
 const app = express()
 
@@ -16,9 +19,13 @@ const io = new Server(server)
 
 
 
-app.use(express.json())
-app.use(cors())
+app.disable("x-powered-by")
+app.use(helmet({ contentSecurityPolicy: false }))
+app.use(express.json({ limit: "20kb" }))
+app.use(cors({ origin: process.env.CLIENT_ORIGIN || false }))
 app.use(express.static("public"))
+app.use(["/login","/register","/send-otp","/verify-otp","/update-password"], rateLimit({ windowMs: 15*60*1000, limit: 20, standardHeaders: true, legacyHeaders: false }))
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error("JWT_SECRET must be at least 32 characters")
 
 /* ================= DATABASE ================= */
 
@@ -112,7 +119,7 @@ if (!email) {
 return res.status(400).json({ message: "Email is required" })
 }
 
-const otp = Math.floor(100000 + Math.random() * 900000).toString()
+const otp = crypto.randomInt(100000,1000000).toString()
 
 try {
 
@@ -202,7 +209,7 @@ app.post("/register",async(req,res)=>{
 const {email,password,otp}=req.body
 const role="homeowner"
 const normalizedEmail=String(email || "").trim().toLowerCase()
-if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail) || typeof password!=="string" || password.length<10 || password.length>128) return res.status(400).json({message:"Valid email and a 10-128 character password are required"})
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || typeof password!=="string" || password.length<10 || password.length>128) return res.status(400).json({message:"Valid email and a 10-128 character password are required"})
 const signupOtp=db.prepare("SELECT * FROM otps WHERE email=? AND purpose=?").get(normalizedEmail,"signup")
 if(!signupOtp || signupOtp.expiry<Date.now() || signupOtp.otp!==String(otp || "")) return res.status(400).json({message:"Valid signup OTP required"})
 db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(normalizedEmail,"signup")
