@@ -345,6 +345,17 @@ app.use("/homeowner/delete-device",authenticate,requireHomeowner,verifyOwnedDevi
 
 /* ================= ADMIN USERS ================= */
 
+app.post("/admin/users",authenticate,requireAdmin,async(req,res)=>{
+const email=String(req.body.email || "").trim().toLowerCase()
+const password=String(req.body.password || "")
+const role=req.body.role
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length<10 || password.length>128 || !["admin","technician","homeowner"].includes(role)) return res.status(400).json({message:"Valid email, 10-128 character password and supported role required"})
+if(db.prepare("SELECT id FROM users WHERE email=?").get(email)) return res.status(409).json({message:"Email already registered"})
+const hash=await bcrypt.hash(password,10)
+db.prepare("INSERT INTO users(email,password,role) VALUES(?,?,?)").run(email,hash,role)
+db.prepare("INSERT INTO system_logs(message,created_at) VALUES(?,CURRENT_TIMESTAMP)").run("User provisioned: "+email+" ("+role+") by "+req.user.email)
+res.status(201).json({message:"User created"})
+})
 app.get("/admin/users",authenticate,requireAdmin,(req,res)=>{
 
 const users=db.prepare("SELECT id,email,role FROM users").all()
@@ -514,6 +525,14 @@ res.json(devices)
 
 })
 
+app.post("/technician/update-device",authenticate,(req,res)=>{
+if(req.user.role!=="technician") return res.status(403).json({message:"Technician access only"})
+const {device_id,status}=req.body
+if(!["Active","Offline"].includes(status)) return res.status(400).json({message:"Invalid status"})
+const result=db.prepare("UPDATE devices SET status=? WHERE id=?").run(status,device_id)
+if(!result.changes) return res.status(404).json({message:"Device not found"})
+res.json({message:"Device status updated"})
+})
 /* ================= ADD ENERGY LOG ================= */
 
 app.post("/technician/energy", authenticate, (req,res)=>{
