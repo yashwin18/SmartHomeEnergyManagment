@@ -229,7 +229,7 @@ const confirm=document.getElementById("confirm").value
 const role=document.getElementById("role").value
 const otp=document.getElementById("otp").value
 
-if(!email || !password || !confirm || !role || !otp){
+if(!email || !password || !confirm || !otp){
 showMsg("Fill all fields","red")
 return
 }
@@ -261,7 +261,7 @@ showMsg("Creating account...","blue")
 const res=await fetch("/register",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({email,password,role})
+body:JSON.stringify({email,password,otp})
 })
 
 const data=await res.json()

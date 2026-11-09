@@ -358,10 +358,7 @@ const data=await res.json()
 document.getElementById("totalEnergy").innerText=data.total+" kWh"
 document.getElementById("todayEnergy").innerText=data.today+" kWh"
 
-const settings=await fetch("/admin/settings",{headers:{Authorization:"Bearer "+token}})
-const s=await settings.json()
-
-let cost=data.today*(s.electricity_rate || 7)
+let cost=data.today*(data.electricity_rate || 7)
 
 document.getElementById("energyCost").innerText="₹"+cost.toFixed(2)
 
@@ -476,9 +473,10 @@ loadDevices()
 
 async function deleteDevice(id){
 
-await fetch("/homeowner/device/"+id,{
+await fetch("/homeowner/delete-device",{
 method:"DELETE",
-headers:{Authorization:"Bearer "+token}
+headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+body:JSON.stringify({device_id:id})
 })
 
 loadDevices()
@@ -521,7 +519,7 @@ fill:true
 
 /* WEBSOCKET LIVE ENERGY */
 
-const socket = io()
+const socket = io({auth:{token:token}})
 
 socket.on("energyUpdate",(data)=>{
 
@@ -531,7 +529,7 @@ document.getElementById("liveEnergy").innerText=data.energy
 
 socket.on("energyAlert",(alert)=>{
 
-alert(alert.message)
+window.alert(alert.message)
 
 })
 

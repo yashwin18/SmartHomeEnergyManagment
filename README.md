@@ -1,237 +1,131 @@
-# 🏠 Smart Home Energy Management System
+# Smart Home Energy Management System
 
-A full-stack **Smart Home Energy Management Platform** that allows homeowners, technicians, and administrators to monitor and manage energy consumption of smart devices in real time.
+A web application for managing smart-home devices and monitoring energy usage. The current project includes a **simulated telemetry mode**; real ESP32/sensor integration is not included yet.
 
-The system provides secure authentication with **Email OTP verification**, **Role-Based Access Control**, **Device Management**, **Energy Monitoring**, and **Live Alerts**.
+## Features
+- Email OTP signup and password-reset flow
+- JWT authentication and role-based APIs (admin, technician, homeowner)
+- Homeowner device management with owner-scoped write authorization
+- Admin user/device/settings/log management
+- Technician device status updates and energy logging
+- Daily/total/monthly energy summaries
+- Simulated energy readings and Socket.IO live alerts
+- Security headers, request-size limit, and authentication rate limiting
 
----
+## Requirements
+- Node.js 18 or newer
+- npm
+- Gmail account with a Google App Password (for email OTP)
 
-# 🚀 Features
-
-### 🔐 Authentication & Security
-- Email OTP verification
-- JWT based authentication
-- Secure password hashing with bcrypt
-- Role-based access (Admin, Technician, Homeowner)
-
-### 👤 User Roles
-
-#### 👨‍💼 Admin
-- Manage users
-- Manage devices
-- Monitor total energy usage
-- View system logs
-- Configure electricity rates and alert thresholds
-
-#### 🛠 Technician
-- View all smart devices
-- Log energy usage
-- Monitor device diagnostics
-- Update energy logs
-
-#### 🏠 Homeowner
-- Manage personal devices
-- Toggle device status
-- Monitor real-time energy consumption
-- View daily & total energy usage
-- Track monthly energy analytics
-
----
-
-# ⚡ Real-Time Energy Monitoring
-
-The system simulates smart device energy consumption and provides:
-
-- Live energy updates using **Socket.IO**
-- Automatic energy logging
-- Real-time alerts when usage exceeds threshold
-
----
-
-# 🧠 Smart System Capabilities
-
-- Device-level energy monitoring
-- Automated energy alerts
-- Energy usage analytics
-- Smart device management
-- Real-time updates via WebSockets
-
----
-
-# 🛠 Tech Stack
-
-### Backend
-- Node.js
-- Express.js
-- SQLite (better-sqlite3)
-- JWT Authentication
-- Nodemailer (Email OTP)
-- Socket.IO (Real-time updates)
-
-### Security
-- bcryptjs
-- JSON Web Tokens
-
-### Frontend
-- HTML
-- CSS
-- JavaScript
-- Chart.js
-
----
-
-# 📂 Project Structure
-
-
-smart-home-energy-system
-│
-├── server.js
-├── database.db
-├── .env
-│
-├── public
-│ ├── index.html
-│ ├── home.html
-│ ├── technician.html
-│ ├── admin.html
-│ │
-│ ├── devices.html
-│ ├── analytics.html
-│ ├── scheduler.html
-│ ├── recommendations.html
-│ │
-│ ├── homes.html
-│ ├── diagnostics.html
-│ ├── maintenance.html
-│ │
-│ ├── users.html
-│ ├── roles.html
-│ └── analytics.html
-
-
----
-
-# 🔧 Installation
-
-### 1️⃣ Clone the Repository
+## Setup
 
 ```bash
-git clone https://github.com/yourusername/smart-home-energy-system.git
-cd smart-home-energy-system
-2️⃣ Install Dependencies
+git clone https://github.com/yashwin18/SmartHomeEnergyManagment.git
+cd SmartHomeEnergyManagment
 npm install
-3️⃣ Create .env File
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_email_password
-JWT_SECRET=your_secret_key
+```
+
+Copy `.env.example` to `.env` and set real values:
+
+```env
 PORT=5000
-4️⃣ Start the Server
-node server.js
+JWT_SECRET=a-long-random-secret-of-at-least-32-characters
+EMAIL_USER=your-gmail@gmail.com
+EMAIL_PASS=your-google-app-password
+CLIENT_ORIGIN=http://localhost:5000
+BOOTSTRAP_ADMIN_KEY=a-long-one-time-setup-key
+```
 
-Server will run at:
+Never commit `.env`. Use a unique, randomly generated `JWT_SECRET`; do not use the example value. `EMAIL_PASS` should be a Google App Password, not your normal Gmail password.
 
-http://localhost:5000
-🔑 API Endpoints
-Authentication
-Method	Endpoint	Description
-POST	/send-otp	Send OTP to email
-POST	/verify-otp	Verify OTP
-POST	/register	Register user
-POST	/login	Login user
-Admin APIs
-Endpoint	Description
-GET /admin/users	Get all users
-DELETE /admin/delete-user/:id	Delete user
-GET /admin/devices	View all devices
-POST /admin/devices	Add device
-DELETE /admin/device/:id	Delete device
-GET /admin/energy	Energy analytics
-GET /admin/logs	System logs
-Technician APIs
-Endpoint	Description
-GET /technician/devices	View devices
-POST /technician/energy	Log energy usage
-Homeowner APIs
-Endpoint	Description
-GET /homeowner/devices	Get personal devices
-POST /homeowner/add-device	Add new device
-POST /homeowner/toggle-device	Toggle device status
-GET /homeowner/energy	View energy usage
-GET /homeowner/monthly-energy	Monthly analytics
-DELETE /homeowner/delete-device	Remove device
-📊 Real-Time Updates
+## First administrator
 
-The system uses Socket.IO to stream live energy updates.
+After starting the server, create the first administrator once using the setup key. Example:
 
-Example event:
+```bash
+curl -X POST http://localhost:5000/setup/admin -H "Content-Type: application/json" -H "x-setup-key: YOUR_BOOTSTRAP_ADMIN_KEY" -d "{\"email\":\"admin@example.com\",\"password\":\"Use-A-Long-Unique-Password\"}"
+```
 
-energyUpdate
+After the admin is created, remove `BOOTSTRAP_ADMIN_KEY` from `.env` and restart the server. The setup endpoint refuses to create another admin once one exists. Admins can then create homeowner, technician, and additional admin accounts through `POST /admin/users`.
 
-Example alert:
+## Start
 
-energyAlert
-🔔 Energy Alerts
+```bash
+npm run check
+npm start
+```
 
-When a device consumes energy above the configured threshold:
+Open `http://localhost:5000`.
 
-⚠ High energy usage detected
+## Roles
 
-An alert is emitted to connected clients.
+### Homeowner
+- Public signup creates homeowner accounts only.
+- View own devices and energy usage.
+- Add, update, toggle, and delete only owned devices.
+- Receive live updates for owned devices after authenticated Socket.IO connection.
 
-📈 Energy Simulation
+### Technician
+- View registered devices.
+- Change device status.
+- Record non-negative energy readings.
 
-Every 5 seconds, the system:
+### Admin
+- Provision users and roles.
+- Manage users and devices.
+- View energy totals and system logs.
+- Configure electricity rate and alert threshold.
 
-Simulates device energy consumption
+## Main API
 
-Stores energy logs
+| Method | Endpoint | Access |
+|---|---|---|
+| POST | `/send-otp` | Public, rate-limited |
+| POST | `/verify-otp` | Public, rate-limited |
+| POST | `/register` | Public, OTP required; homeowner only |
+| POST | `/login` | Public, rate-limited |
+| POST | `/update-password` | Public, reset OTP required |
+| POST | `/setup/admin` | One-time setup key |
+| GET/POST | `/admin/users` | Admin |
+| DELETE | `/admin/delete-user/:id` | Admin |
+| GET/POST | `/admin/devices` | Admin |
+| DELETE | `/admin/device/:id` | Admin |
+| GET | `/admin/energy`, `/admin/logs`, `/admin/settings` | Admin |
+| POST | `/admin/settings` | Admin |
+| GET | `/technician/devices` | Technician |
+| POST | `/technician/update-device` | Technician |
+| POST | `/technician/log-energy` | Technician |
+| GET | `/homeowner/devices`, `/homeowner/energy`, `/homeowner/monthly-energy` | Homeowner |
+| POST | `/homeowner/add-device`, `/homeowner/toggle-device`, `/homeowner/update-device` | Homeowner, owned devices where applicable |
+| DELETE | `/homeowner/delete-device` | Homeowner, owned device only |
 
-Sends live updates
+All protected REST endpoints expect `Authorization: Bearer YOUR_JWT_TOKEN`.
 
-Triggers alerts if threshold exceeded
+## Important implementation notes
+- Energy readings are currently generated by a random simulator every five seconds. They are not real meter readings.
+- The simulator stores energy-log samples for each device; validate the units and aggregation approach against your intended meter/sensor before using these figures for billing.
+- Socket.IO requires a JWT in the handshake auth object: `io({ auth: { token } })`.
+- SQLite data is stored in `database.db` in the server working directory. Back it up before replacing or deploying the application.
+- If hosting the UI and API on separate origins, set `CLIENT_ORIGIN` to the exact trusted frontend origin and configure Socket.IO/CORS consistently.
 
-🧪 Testing Roles
+## Testing checklist
 
-You can register with different roles:
+1. Create the first admin with the one-time bootstrap endpoint, remove the bootstrap key, and log in.
+2. Create a technician and homeowner from the admin user-management API.
+3. Test signup OTP: correct OTP, wrong OTP, expired OTP, reused OTP, duplicate email.
+4. Test login with correct/incorrect password and mismatched role.
+5. Test password reset with correct, incorrect, expired, and reused OTP.
+6. Verify homeowners cannot read or mutate another homeowner’s device by changing device IDs in requests.
+7. Verify technicians can update device status and log valid energy, but cannot call admin/homeowner routes.
+8. Verify admins can provision users, manage devices, read logs/energy, and update settings.
+9. Verify the owner dashboard loads devices/analytics, toggles and deletes devices, and receives live events only for that owner.
+10. Restart the server and confirm SQLite data persists.
+11. Check invalid payloads, missing/expired tokens, and rate-limit responses.
 
-admin
-technician
-homeowner
+## Not included yet
+- ESP32/Arduino firmware, physical sensor calibration, MQTT/broker integration, and secure device-to-server provisioning.
+- Production-grade email provider configuration and deployment-specific origin/TLS setup.
+- Automated end-to-end browser tests and hardware-in-the-loop tests.
 
-Each role gets different dashboard access.
-
-🔒 Security Features
-
-Password hashing
-
-JWT protected APIs
-
-Role-based access control
-
-OTP email verification
-
-🎯 Future Improvements
-
-IoT device integration
-
-AI-based energy optimization
-
-Mobile app support
-
-Smart automation scheduling
-
-Energy prediction analytics
-
-👨‍💻 Author
-
-Developed by YASHWIN GOWDA K
-
-Engineering Student | Smart Systems Developer
-
-⭐ Support
-
-If you like this project:
-
-⭐ Star the repository
-🍴 Fork it
-📢 Share i
+## Author
+Yashwin Gowda K
