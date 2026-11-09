@@ -24,7 +24,7 @@ app.use(helmet({ contentSecurityPolicy: false }))
 app.use(express.json({ limit: "20kb" }))
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || false }))
 app.use(express.static("public"))
-app.use(["/login","/register","/send-otp","/verify-otp","/update-password"], rateLimit({ windowMs: 15*60*1000, limit: 20, standardHeaders: true, legacyHeaders: false }))
+app.use(["/login","/register","/send-otp","/verify-otp","/update-password","/setup/admin"], rateLimit({ windowMs: 15*60*1000, limit: 20, standardHeaders: true, legacyHeaders: false }))
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error("JWT_SECRET must be at least 32 characters")
 
 /* ================= DATABASE ================= */
@@ -288,6 +288,21 @@ app.use("/homeowner/update-device",authenticate,requireHomeowner,verifyOwnedDevi
 app.use("/homeowner/update-device-status",authenticate,requireHomeowner,verifyOwnedDevice);
 app.use("/homeowner/delete-device",authenticate,requireHomeowner,verifyOwnedDevice);
 
+/* ================= FIRST ADMIN BOOTSTRAP ================= */
+app.post("/setup/admin",async(req,res)=>{
+const supplied=String(req.headers["x-setup-key"] || "")
+const expected=String(process.env.BOOTSTRAP_ADMIN_KEY || "")
+if(!expected || supplied.length!==expected.length || !crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(expected))) return res.status(403).json({message:"Invalid setup key"})
+if(db.prepare("SELECT id FROM users WHERE role=?").get("admin")) return res.status(409).json({message:"An administrator already exists"})
+const email=String(req.body.email || "").trim().toLowerCase()
+const password=String(req.body.password || "")
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length<12 || password.length>128) return res.status(400).json({message:"Valid email and 12-128 character password required"})
+if(db.prepare("SELECT id FROM users WHERE email=?").get(email)) return res.status(409).json({message:"Email already registered"})
+const hash=await bcrypt.hash(password,12)
+db.prepare("INSERT INTO users(email,password,role) VALUES(?,?,?)").run(email,hash,"admin")
+db.prepare("INSERT INTO system_logs(message,created_at) VALUES(?,CURRENT_TIMESTAMP)").run("Initial administrator provisioned: "+email)
+res.status(201).json({message:"Initial administrator created. Remove BOOTSTRAP_ADMIN_KEY from environment now."})
+})
 /* ================= ADMIN USERS ================= */
 
 app.post("/admin/users",authenticate,requireAdmin,async(req,res)=>{
