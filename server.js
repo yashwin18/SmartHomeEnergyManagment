@@ -262,7 +262,13 @@ res.json({token,role:user.role})
 
 app.post("/update-password",async(req,res)=>{
 
-const {email,password}=req.body
+const email=String(req.body.email || "").trim().toLowerCase()
+const password=String(req.body.password || "")
+const otp=String(req.body.otp || "")
+const record=db.prepare("SELECT * FROM otps WHERE email=? AND purpose=?").get(email,"reset")
+if(!record || record.expiry<Date.now() || record.otp!==otp) return res.status(400).json({message:"Valid reset OTP required"})
+if(password.length<10 || password.length>128) return res.status(400).json({message:"Password must be 10-128 characters"})
+db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(email,"reset")
 
 const hash=await bcrypt.hash(password,10)
 
