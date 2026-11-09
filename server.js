@@ -586,10 +586,8 @@ today += td.e || 0
 
 })
 
-res.json({
-total:total,
-today:today
-})
+const settings=db.prepare("SELECT electricity_rate FROM settings WHERE id=1").get()
+res.json({total:total,today:today,electricity_rate:settings ? settings.electricity_rate : 0})
 
 })
 
