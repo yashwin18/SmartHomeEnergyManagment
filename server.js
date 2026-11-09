@@ -307,6 +307,22 @@ next()
 
 }
 
+/* ================= HOMEOWNER WRITE GUARDS ================= */
+function requireHomeowner(req,res,next){
+  if(req.user.role !== "homeowner") return res.status(403).json({message:"Homeowner access only"});
+  next();
+}
+function verifyOwnedDevice(req,res,next){
+  const id = req.body.device_id || req.params.id;
+  const device = db.prepare("SELECT id FROM devices WHERE id=? AND owner=?").get(id,req.user.email);
+  if(!device) return res.status(404).json({message:"Device not found"});
+  next();
+}
+app.use("/homeowner/toggle-device",authenticate,requireHomeowner,verifyOwnedDevice);
+app.use("/homeowner/update-device",authenticate,requireHomeowner,verifyOwnedDevice);
+app.use("/homeowner/update-device-status",authenticate,requireHomeowner,verifyOwnedDevice);
+app.use("/homeowner/delete-device",authenticate,requireHomeowner,verifyOwnedDevice);
+
 /* ================= ADMIN USERS ================= */
 
 app.get("/admin/users",authenticate,requireAdmin,(req,res)=>{
