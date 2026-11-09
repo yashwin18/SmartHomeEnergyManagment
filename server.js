@@ -199,7 +199,9 @@ res.json({message:"OTP verified successfully"})
 
 app.post("/register",async(req,res)=>{
 
-const {email,password,role}=req.body
+const {email,password}=req.body
+const role="homeowner"
+if(!email || typeof password!=="string" || password.length<10 || password.length>128) return res.status(400).json({message:"Valid email and a 10-128 character password are required"})
 
 const exists=db.prepare("SELECT * FROM users WHERE email=?").get(email)
 
