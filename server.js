@@ -84,6 +84,7 @@ electricity_rate REAL,
 alert_threshold REAL
 )
 `).run()
+db.prepare("INSERT OR IGNORE INTO settings(id,electricity_rate,alert_threshold) VALUES(1,0.15,1.5)").run()
 
 console.log("SQLite connected")
 
@@ -214,7 +215,7 @@ const signupOtp=db.prepare("SELECT * FROM otps WHERE email=? AND purpose=?").get
 if(!signupOtp || signupOtp.expiry<Date.now() || signupOtp.otp!==String(otp || "")) return res.status(400).json({message:"Valid signup OTP required"})
 db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(normalizedEmail,"signup")
 
-const exists=db.prepare("SELECT * FROM users WHERE email=?").get(email)
+const exists=db.prepare("SELECT * FROM users WHERE email=?").get(normalizedEmail)
 
 if(exists){
 return res.status(400).json({message:"Email already registered"})
@@ -542,8 +543,10 @@ res.json({message:"Energy recorded"})
 
 /* ================= TECHNICIAN LOGS-energy ================= */
 app.post("/technician/log-energy", authenticate,(req,res)=>{
-
+if(req.user.role!=="technician") return res.status(403).json({message:"Technician access only"})
 const {device_id,energy}=req.body
+if(!Number.isFinite(Number(energy)) || Number(energy)<0) return res.status(400).json({message:"Energy must be a non-negative number"})
+if(!db.prepare("SELECT id FROM devices WHERE id=?").get(device_id)) return res.status(404).json({message:"Device not found"})
 
 db.prepare(`
 INSERT INTO energy_logs(device_id,energy_used,timestamp)
@@ -665,12 +668,10 @@ res.json({message:"Device status updated"})
 app.get("/homeowner/monthly-energy", authenticate,(req,res)=>{
 
 const data=db.prepare(`
-SELECT date(timestamp) as day,
-SUM(energy_used) as energy
-FROM energy_logs
-GROUP BY day
-ORDER BY day
-`).all()
+SELECT date(e.timestamp) as day,SUM(e.energy_used) as energy
+FROM energy_logs e JOIN devices d ON d.id=e.device_id
+WHERE d.owner=? GROUP BY date(e.timestamp) ORDER BY day
+`).all(req.user.email)
 
 res.json(data)
 
@@ -688,7 +689,12 @@ res.json({message:"Device deleted"})
 
 })
 
+io.use((socket,next)=>{
+try { const token=socket.handshake.auth && socket.handshake.auth.token; socket.user=jwt.verify(token,process.env.JWT_SECRET); next() }
+catch(error) { next(new Error("Unauthorized")) }
+})
 io.on("connection",(socket)=>{
+socket.join("user:"+socket.user.email)
 
 console.log("Client connected")
 
@@ -716,7 +722,7 @@ VALUES(?,?,datetime('now'))
 
 /* send live update */
 
-io.emit("energyUpdate",{
+io.to("user:"+device.owner).emit("energyUpdate",{
 device:device.name,
 energy:energy
 })
@@ -725,7 +731,7 @@ energy:energy
 
 if(settings && Number(energy) > settings.alert_threshold){
 
-io.emit("energyAlert",{
+io.to("user:"+device.owner).emit("energyAlert",{
 message:`⚠ High energy usage detected on ${device.name}`
 })
 
