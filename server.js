@@ -112,79 +112,24 @@ process.env.JWT_SECRET,
 
 /* ================= OTP ================= */
 
-app.post("/send-otp", async (req, res) => {
-
-const { email, purpose } = req.body
-
-if (!email) {
-return res.status(400).json({ message: "Email is required" })
-}
-
-const otp = crypto.randomInt(100000,1000000).toString()
-
+app.post("/send-otp",async(req,res)=>{
+const email=String(req.body.email || "").trim().toLowerCase()
+const purpose=req.body.purpose
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !["signup","reset"].includes(purpose)) return res.status(400).json({message:"Valid email and OTP purpose required"})
+if(purpose==="reset" && !db.prepare("SELECT id FROM users WHERE email=?").get(email)) return res.status(404).json({message:"Account not found"})
+const otp=crypto.randomInt(100000,1000000).toString()
 try {
-
-db.prepare("DELETE FROM otps WHERE email=? AND purpose=?")
-.run(email, purpose)
-
-db.prepare(
-"INSERT INTO otps(email,otp,purpose,expiry) VALUES(?,?,?,?)"
-).run(email, otp, purpose, Date.now() + 300000)
-
-await transporter.sendMail({
-from: `"Smart Home Energy System" <${process.env.EMAIL_USER}>`,
-to: email,
-subject: "Your Smart Home Verification Code",
-html: `
-<div style="font-family:Arial,sans-serif;background:#0f172a;padding:40px;color:white">
-
-<div style="max-width:500px;margin:auto;background:#020617;border-radius:10px;padding:30px;text-align:center">
-
-<h2 style="color:#00f5ff;margin-bottom:10px">
-Smart Home Energy Management
-</h2>
-
-<p style="color:#cbd5e1">
-Secure Verification Required
-</p>
-
-<div style="margin:30px 0">
-
-<p style="color:#94a3b8">
-Use the verification code below to continue:
-</p>
-
-<div style="
-font-size:34px;
-letter-spacing:6px;
-background:#0f172a;
-padding:15px;
-border-radius:8px;
-color:#00f5ff;
-font-weight:bold;
-display:inline-block;
-margin-top:10px
-">
-${otp}
-</div>
-
-</div>
-
-<p style="color:#94a3b8;font-size:14px">
-This OTP is valid for <b>5 minutes</b>.
-</p>
-
-<hr style="border:1px solid #1e293b;margin:25px 0">
-
-<p style="font-size:12px;color:#64748b">
-Smart Home Energy Monitoring System<br>
-Secure Device & Energy Management Platform
-</p>
-
-</div>
-</div>
-`
+  db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(email,purpose)
+  db.prepare("INSERT INTO otps(email,otp,purpose,expiry) VALUES(?,?,?,?)").run(email,otp,purpose,Date.now()+300000)
+  await transporter.sendMail({from:process.env.EMAIL_USER,to:email,subject:"Smart Home verification code",text:"Your verification code is "+otp+". It expires in 5 minutes."})
+  return res.json({message:"OTP sent"})
+} catch(error) {
+  db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(email,purpose)
+  console.error("OTP delivery failed:",error.message)
+  return res.status(503).json({message:"Unable to send OTP. Check email configuration."})
+}
 })
+
 /* ================= VERIFY OTP ================= */
 
 app.post("/verify-otp",(req,res)=>{
