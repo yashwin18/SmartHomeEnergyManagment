@@ -476,9 +476,10 @@ loadDevices()
 
 async function deleteDevice(id){
 
-await fetch("/homeowner/device/"+id,{
+await fetch("/homeowner/delete-device",{
 method:"DELETE",
-headers:{Authorization:"Bearer "+token}
+headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+body:JSON.stringify({device_id:id})
 })
 
 loadDevices()
