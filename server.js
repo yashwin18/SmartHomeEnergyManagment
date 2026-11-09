@@ -331,7 +331,8 @@ app.delete("/admin/delete-user/:id",authenticate,requireAdmin,(req,res)=>{
 const id=req.params.id
 
 const user=db.prepare("SELECT * FROM users WHERE id=?").get(id)
-
+if(!user) return res.status(404).json({message:"User not found"})
+if(user.id===req.user.id) return res.status(400).json({message:"You cannot delete your own account while signed in"})
 db.prepare("DELETE FROM users WHERE id=?").run(id)
 
 /* LOG */
@@ -384,7 +385,8 @@ app.delete("/admin/device/:id",authenticate,requireAdmin,(req,res)=>{
 const id=req.params.id
 
 const device=db.prepare("SELECT * FROM devices WHERE id=?").get(id)
-
+if(!device) return res.status(404).json({message:"Device not found"})
+db.prepare("DELETE FROM energy_logs WHERE device_id=?").run(id)
 db.prepare("DELETE FROM devices WHERE id=?").run(id)
 
 /* LOG */
