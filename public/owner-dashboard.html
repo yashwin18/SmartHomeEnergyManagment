@@ -522,7 +522,7 @@ fill:true
 
 /* WEBSOCKET LIVE ENERGY */
 
-const socket = io()
+const socket = io({auth:{token:token}})
 
 socket.on("energyUpdate",(data)=>{
 
