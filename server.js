@@ -287,6 +287,8 @@ app.use("/homeowner/toggle-device",authenticate,requireHomeowner,verifyOwnedDevi
 app.use("/homeowner/update-device",authenticate,requireHomeowner,verifyOwnedDevice);
 app.use("/homeowner/update-device-status",authenticate,requireHomeowner,verifyOwnedDevice);
 app.use("/homeowner/delete-device",authenticate,requireHomeowner,verifyOwnedDevice);
+app.use("/homeowner/add-device",authenticate,requireHomeowner);
+app.use("/homeowner/monthly-energy",authenticate,requireHomeowner);
 
 /* ================= FIRST ADMIN BOOTSTRAP ================= */
 app.post("/setup/admin",async(req,res)=>{
@@ -608,15 +610,11 @@ res.json({message:"Device updated"})
 /* ================= add-device ================= */
 
 app.post("/homeowner/add-device", authenticate, (req,res)=>{
-
-const {name,power_rating}=req.body
-
-db.prepare(
-"INSERT INTO devices(name,owner,power_rating,status) VALUES(?,?,?,?)"
-).run(name,req.user.email,power_rating,"Active")
-
-res.json({message:"Device added"})
-
+const name=String(req.body.name || "").trim()
+const power=Number(req.body.power_rating)
+if(!name || name.length>80 || !Number.isFinite(power) || power<=0 || power>100000) return res.status(400).json({message:"Provide a device name and a valid positive power rating"})
+db.prepare("INSERT INTO devices(name,owner,power_rating,status) VALUES(?,?,?,?)").run(name,req.user.email,power,"Active")
+res.status(201).json({message:"Device added"})
 })
 
 /* ================= update-device ================= */
