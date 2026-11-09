@@ -444,17 +444,11 @@ res.json(settings)
 })
 
 app.post("/admin/settings",authenticate,requireAdmin,(req,res)=>{
-
-const {electricity_rate,alert_threshold}=req.body
-
-db.prepare(`
-UPDATE settings
-SET electricity_rate=?,alert_threshold=?
-WHERE id=1
-`).run(electricity_rate,alert_threshold)
-
+const rate=Number(req.body.electricity_rate)
+const threshold=Number(req.body.alert_threshold)
+if(!Number.isFinite(rate) || rate<0 || rate>100000 || !Number.isFinite(threshold) || threshold<=0 || threshold>1000000) return res.status(400).json({message:"Enter a valid non-negative electricity rate and positive alert threshold"})
+db.prepare("UPDATE settings SET electricity_rate=?,alert_threshold=? WHERE id=1").run(rate,threshold)
 res.json({message:"Settings updated"})
-
 })
 
 /* ================= PROFILE ================= */
