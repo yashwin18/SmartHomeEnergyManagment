@@ -134,8 +134,10 @@ try {
 
 app.post("/verify-otp",(req,res)=>{
 
-const { email, otp, purpose } = req.body
-
+const email=String(req.body.email || "").trim().toLowerCase()
+const otp=String(req.body.otp || "")
+const purpose=req.body.purpose
+if(!["signup","reset"].includes(purpose)) return res.status(400).json({message:"Invalid OTP purpose"})
 const record=db.prepare(
 "SELECT * FROM otps WHERE email=? AND purpose=?"
 ).get(email,purpose)
@@ -188,11 +190,11 @@ res.json({message:"Account created"})
 
 app.post("/login",async(req,res)=>{
 
-const {email,password,role}=req.body
-
-const user=db.prepare(
-"SELECT * FROM users WHERE email=?"
-).get(email)
+const emailNormalized=String(req.body.email || "").trim().toLowerCase()
+const password=String(req.body.password || "")
+const role=req.body.role
+if(!emailNormalized || !password || !["admin","homeowner","technician"].includes(role)) return res.status(400).json({message:"Email, password and role are required"})
+const user=db.prepare("SELECT * FROM users WHERE email=?").get(emailNormalized)
 
 if(!user) return res.status(400).json({message:"User not found"})
 if(user.role!==role) return res.status(400).json({message:"Role mismatch"})
@@ -223,6 +225,7 @@ const email=String(req.body.email || "").trim().toLowerCase()
 const password=String(req.body.password || "")
 const otp=String(req.body.otp || "")
 const record=db.prepare("SELECT * FROM otps WHERE email=? AND purpose=?").get(email,"reset")
+if(!db.prepare("SELECT id FROM users WHERE email=?").get(email)) return res.status(404).json({message:"Account not found"})
 if(!record || record.expiry<Date.now() || record.otp!==otp) return res.status(400).json({message:"Valid reset OTP required"})
 if(password.length<10 || password.length>128) return res.status(400).json({message:"Password must be 10-128 characters"})
 db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(email,"reset")
