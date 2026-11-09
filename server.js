@@ -199,9 +199,13 @@ res.json({message:"OTP verified successfully"})
 
 app.post("/register",async(req,res)=>{
 
-const {email,password}=req.body
+const {email,password,otp}=req.body
 const role="homeowner"
-if(!email || typeof password!=="string" || password.length<10 || password.length>128) return res.status(400).json({message:"Valid email and a 10-128 character password are required"})
+const normalizedEmail=String(email || "").trim().toLowerCase()
+if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail) || typeof password!=="string" || password.length<10 || password.length>128) return res.status(400).json({message:"Valid email and a 10-128 character password are required"})
+const signupOtp=db.prepare("SELECT * FROM otps WHERE email=? AND purpose=?").get(normalizedEmail,"signup")
+if(!signupOtp || signupOtp.expiry<Date.now() || signupOtp.otp!==String(otp || "")) return res.status(400).json({message:"Valid signup OTP required"})
+db.prepare("DELETE FROM otps WHERE email=? AND purpose=?").run(normalizedEmail,"signup")
 
 const exists=db.prepare("SELECT * FROM users WHERE email=?").get(email)
 
@@ -213,7 +217,7 @@ const hash=await bcrypt.hash(password,10)
 
 db.prepare(
 "INSERT INTO users(email,password,role) VALUES(?,?,?)"
-).run(email,hash,role)
+).run(normalizedEmail,hash,role)
 
 /* SYSTEM LOG */
 
